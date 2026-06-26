@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>@romatech/orm-providers-sqlite — SQLite Provider</title>
+    <meta name="description" content="SQLite provider for @romatech/orm. Zero native dependencies (WASM-based). Works in Node.js, browsers, and serverless environments.">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1a1a2e; line-height: 1.6; }
+        a { color: #0066ff; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .container { max-width: 960px; margin: 0 auto; padding: 0 1.5rem; }
+        header { border-bottom: 1px solid #e8e8e8; padding: 1rem 0; }
+        .header-inner { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+        .header-inner img { height: 48px; width: 48px; border-radius: 8px; }
+        .header-inner h1 { font-size: 1.4rem; font-weight: 700; flex: 1; }
+        .header-links { display: flex; gap: 0.5rem; }
+        .header-links a { border: 1px solid #0066ff; padding: 0.3rem 0.9rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; transition: background 0.2s; }
+        .header-links a:hover { background: #0066ff; color: #fff; text-decoration: none; }
+        .hero { padding: 3rem 0 2rem; }
+        .hero p { font-size: 1.15rem; color: #444; max-width: 700px; }
+        section { padding: 2rem 0; }
+        section h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 1rem; border-bottom: 2px solid #f0f0f0; padding-bottom: 0.5rem; }
+        .install-box { background: #1a1a2e; color: #e0e0e0; padding: 1rem 1.25rem; border-radius: 8px; font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; font-size: 0.9rem; overflow-x: auto; }
+        pre { background: #f6f8fa; border: 1px solid #e1e4e8; border-radius: 8px; padding: 1.25rem; overflow-x: auto; font-size: 0.85rem; line-height: 1.5; }
+        code { font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; }
+        :not(pre) > code { background: #f0f0f0; padding: 2px 6px; border-radius: 4px; font-size: 0.85em; }
+        .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; }
+        .feature-card { background: #f9fafb; border: 1px solid #e8e8e8; border-radius: 8px; padding: 1.25rem; }
+        .feature-card h3 { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.4rem; }
+        .feature-card p { font-size: 0.85rem; color: #555; }
+        footer { border-top: 1px solid #e8e8e8; padding: 2rem 0; margin-top: 2rem; text-align: center; color: #888; font-size: 0.85rem; }
+        @media (max-width: 600px) {
+            .header-inner { flex-direction: column; align-items: flex-start; }
+            .hero p { font-size: 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container header-inner">
+            <img src="logo.png" alt="@romatech/orm-providers-sqlite" />
+            <h1>@romatech/orm-providers-sqlite</h1>
+            <nav class="header-links">
+                <a href="https://github.com/RomaTech-LTDA/orm-providers-sqlite">GitHub</a>
+                <a href="https://www.npmjs.com/package/@romatech/orm-providers-sqlite">npm</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="hero">
+            <p>SQLite provider for <a href="https://www.npmjs.com/package/@romatech/orm">@romatech/orm</a>. Zero native dependencies — uses sql.js (SQLite compiled to WASM). Works in Node.js, browsers, and serverless environments.</p>
+        </div>
+
+        <section>
+            <h2>Installation</h2>
+            <div class="install-box">npm install @romatech/orm @romatech/orm-providers-sqlite reflect-metadata</div>
+        </section>
+
+        <section>
+            <h2>Quick Start</h2>
+            <pre><code>import 'reflect-metadata';
+import { DbContext, DbContextOptions } from '@romatech/orm';
+import { SqliteProvider } from '@romatech/orm-providers-sqlite';
+
+class AppDbContext extends DbContext {
+    users = this.set(User);
+
+    constructor() {
+        super(new DbContextOptions().useProvider(
+            new SqliteProvider({ filename: './mydb.sqlite' })
+        ));
+    }
+}
+
+// In-memory (great for tests)
+new SqliteProvider(':memory:')</code></pre>
+        </section>
+
+        <section>
+            <h2>Features</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <h3>Zero Native Dependencies</h3>
+                    <p>sql.js compiles SQLite to WebAssembly — no native binaries, no build tools required.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Universal Runtime</h3>
+                    <p>Works in Node.js, browsers, serverless (Lambda, Vercel), and edge environments.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>File or In-Memory</h3>
+                    <p>Persist to a file or use <code>:memory:</code> for fast tests and ephemeral data.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>WAL Mode</h3>
+                    <p>Write-Ahead Logging enabled by default for better concurrent read performance.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Full CRUD &amp; Migrations</h3>
+                    <p>Same ORM API: add, update, remove, queries, migrations, and scaffold support.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Lightweight</h3>
+                    <p>Embedded database — no server process, no configuration, just a file.</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>MIT License &copy; RomaTech / Leandro Romanelli</p>
+        </div>
+    </footer>
+</body>
+</html>
