@@ -13,7 +13,7 @@
   "exports": { ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" } },
   "files": ["dist", "README.md", "LICENSE"],
   "scripts": { "clean": "rimraf dist", "build": "npm run clean && tsc", "watch": "tsc --watch" },
-  "dependencies": { "sql.js": "^1.10.0" },
+  "dependencies": { "sql.js": "^1.14.2" },
   "peerDependencies": { "@romatech/orm": "^2.0.0" },
   "devDependencies": { "@romatech/orm": "^2.0.0", "@types/node": "^24.1.0", "rimraf": "^6.0.1", "typescript": "^5.9.3" },
   "engines": { "node": ">=18" },
