@@ -38,16 +38,13 @@ jobs:
       - uses: actions/setup-node@v4
         if: steps.check.outputs.publish == 'true'
         with:
-          node-version: '20'
+          node-version: '22'
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Sync @romatech/orm version
-        if: steps.check.outputs.publish == 'true'
-        run: |
-          ORM_VERSION=$(npm view @romatech/orm version 2>/dev/null || echo "2.0.0")
-          sed -i "s|\"@romatech/orm\": \".*\"|\"@romatech/orm\": \"^$ORM_VERSION\"|g" package.json
-
-      - run: npm install --legacy-peer-deps
+      # Install exactly what package-lock.json pins, so the published package is
+      # built and tested against the same @romatech/orm as CI (the range is no
+      # longer rewritten at publish time).
+      - run: npm ci
         if: steps.check.outputs.publish == 'true'
 
       - run: npm run build --if-present

@@ -1,21 +1,61 @@
 {
   "name": "@romatech/orm-providers-sqlite",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "SQLite provider for RomaTech ORM — lightweight local database",
   "author": "RomaTech/Leandro Romanelli",
   "license": "MIT",
-  "repository": { "type": "git", "url": "https://github.com/RomaTech-LTDA/orm-providers-sqlite" },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/RomaTech-LTDA/orm-providers-sqlite"
+  },
   "homepage": "https://github.com/RomaTech-LTDA/orm-providers-sqlite#readme",
-  "bugs": { "url": "https://github.com/RomaTech-LTDA/orm-providers-sqlite/issues" },
-  "keywords": ["orm", "sqlite", "local", "embedded", "romatech", "database", "typescript"],
+  "bugs": {
+    "url": "https://github.com/RomaTech-LTDA/orm-providers-sqlite/issues"
+  },
+  "keywords": [
+    "orm",
+    "sqlite",
+    "local",
+    "embedded",
+    "romatech",
+    "database",
+    "typescript"
+  ],
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "exports": { ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" } },
-  "files": ["dist", "README.md", "LICENSE"],
-  "scripts": { "clean": "rimraf dist", "build": "npm run clean && tsc", "watch": "tsc --watch" },
-  "dependencies": { "sql.js": "^1.10.0" },
-  "peerDependencies": { "@romatech/orm": "^2.0.0" },
-  "devDependencies": { "@romatech/orm": "^2.0.0", "@types/node": "^24.1.0", "rimraf": "^6.0.1", "typescript": "^5.9.3" },
-  "engines": { "node": ">=18" },
-  "publishConfig": { "access": "public" }
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "clean": "rimraf dist",
+    "build": "npm run clean && tsc",
+    "watch": "tsc --watch",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "sql.js": "^1.10.0"
+  },
+  "peerDependencies": {
+    "@romatech/orm": "^2.0.0"
+  },
+  "devDependencies": {
+    "@romatech/orm": "^2.0.0",
+    "@types/node": "^24.1.0",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }
