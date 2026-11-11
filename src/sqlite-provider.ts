@@ -6,9 +6,10 @@ import {
   buildInsertSql,
   buildSelectAllSql,
   buildSelectSql,
-  buildUpdateSql
+  buildUpdateSql,
+  parsePredicate
 } from '@romatech/orm';
-import type { IDbProvider, QueryObject, SqlDialect, TableColumnInfo } from '@romatech/orm';
+import type { IDbProvider, QueryExpression, QueryObject, SqlDialect, TableColumnInfo } from '@romatech/orm';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -301,7 +302,7 @@ export class SqliteProvider implements IDbProvider {
     // QueryObject path: push WHERE / ORDER BY to SQLite, then let the core
     // apply the parts that could not be translated (and skip/take/select)
     // over rows converted back to booleans and dates.
-    const command = buildSelectSql(sqlOrEntity, paramsOrQuery, dialect);
+    const command = buildSelectSql(sqlOrEntity, serverWhereQuery(paramsOrQuery), dialect);
     const rows = this.queryTable(sqlOrEntity, command.sql, command.params) as T[];
     return applyClientSideQuery(rows, paramsOrQuery);
   }
@@ -396,6 +397,74 @@ export class SqliteProvider implements IDbProvider {
     if (u.includes('DATE') || u.includes('TIME')) return 'Date';
     if (['INT', 'REAL', 'FLOA', 'DOUB', 'NUM', 'DEC'].some(token => u.includes(token))) return 'number';
     return 'string';
+  }
+}
+
+/**
+ * Whether the installed `@romatech/orm` parses predicates into SQL that can
+ * drop rows JavaScript keeps. 2.0.x turns bare members into `= true/false`
+ * (`!u.deletedAt` becomes `"deletedAt" = 0`, dropping every NULL row),
+ * `!==` into `!=` (drops NULL rows), `!s.includes(x)` into a case-insensitive
+ * `NOT LIKE`, and `<`/`<=` into comparisons that drop NULL rows (`null < 10` is
+ * true in JavaScript). Later versions leave those predicates unparsed, so the
+ * probe (`!x.flag` parsed or not) tells the two apart without a version check.
+ */
+const LEGACY_WHERE_PARSER = ((): boolean => {
+  try {
+    return typeof parsePredicate !== 'function' || parsePredicate((x: any) => !x.flag) !== undefined;
+  } catch {
+    return true;
+  }
+})();
+
+/**
+ * With a legacy core, keeps in the SQL `WHERE` only the parsed conditions that
+ * match at least every row the JavaScript predicate accepts (an `&&` keeps its
+ * safe conjuncts, an `||` is kept only when every branch is safe). The rest is
+ * evaluated in memory by `applyClientSideQuery`, which always re-applies the
+ * original predicates. With a newer core the query is used as given.
+ */
+function serverWhereQuery<T, TResult>(query: QueryObject<T, TResult>): QueryObject<T, TResult> {
+  const predicates = query.predicates ?? [];
+  const expressions = query.whereExpressions ?? [];
+  if (!LEGACY_WHERE_PARSER || predicates.length === 0 || predicates.length !== expressions.length) {
+    return query;
+  }
+  const safe = expressions
+    .map(sqlSafeExpression)
+    .filter((expression): expression is QueryExpression => expression !== null);
+  // The core pushes a WHERE only when there is one parsed expression per predicate.
+  return { ...query, predicates: safe.map(() => () => true), whereExpressions: safe };
+}
+
+function sqlSafeExpression(expression: QueryExpression): QueryExpression | null {
+  if (expression.kind === 'logical') {
+    const parts = expression.expressions.map(sqlSafeExpression);
+    if (expression.operator === 'or') {
+      return parts.every(part => part !== null) ? expression : null;
+    }
+    const known = parts.filter((part): part is QueryExpression => part !== null);
+    if (known.length === 0) return null;
+    return known.length === 1 ? known[0] : { ...expression, expressions: known };
+  }
+
+  const value: any = expression.value;
+  switch (expression.operator) {
+    case '=':
+      // `= true/false` may stand for a bare member (truthy/falsy in JavaScript).
+      return typeof value === 'boolean' ? null : expression;
+    case '!=':
+      // Only `IS NOT NULL` is exact; `col != v` drops the NULL rows.
+      return value === null || value === undefined ? expression : null;
+    case '>': return (null as any) > value ? null : expression;
+    case '>=': return (null as any) >= value ? null : expression;
+    case '<': return (null as any) < value ? null : expression;
+    case '<=': return (null as any) <= value ? null : expression;
+    case 'like':
+      // SQLite's LIKE is case-insensitive: a superset of the JavaScript match.
+      return expression;
+    default:
+      return null;
   }
 }
 

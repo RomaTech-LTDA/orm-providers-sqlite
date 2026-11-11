@@ -204,6 +204,76 @@ test('dates written by SQLite itself (UTC "YYYY-MM-DD HH:MM:SS") are read as UTC
   await provider.disconnect();
 });
 
+// ─── The SQL WHERE never drops a row the JavaScript predicate keeps ──────────
+
+// @romatech/orm 2.0.x parses `!x.f`, `x.f`, `x.f !== v` and `!x.s.includes(v)`
+// into SQL that drops NULL rows (and LIKE is case-insensitive in SQLite);
+// newer cores leave those predicates unparsed. Both must give JS results.
+const legacyCore = Boolean(parsePredicate(x => !x.flag));
+
+async function nullableProvider() {
+  const provider = new SqliteProvider(':memory:');
+  await provider.connect('');
+  await provider.createTable({
+    tableName: 'people',
+    columns: [
+      { name: 'id', tsType: 'number', primaryKey: true },
+      { name: 'tenant', tsType: 'string' },
+      { name: 'name', tsType: 'string' },
+      { name: 'age', tsType: 'number' },
+      { name: 'deletedAt', tsType: 'Date' }
+    ]
+  });
+  await provider.addRange([
+    { id: 1, tenant: 'a', name: 'ana', age: 30, deletedAt: null },
+    { id: 2, tenant: 'a', name: null, age: null, deletedAt: new Date(Date.UTC(2020, 0, 1)) },
+    { id: 3, tenant: 'b', name: 'BOB', age: 5, deletedAt: null },
+    { id: 4, tenant: 'a', name: '', age: 12, deletedAt: null }
+  ], 'people');
+  await provider.saveChanges();
+  const statements = [];
+  const query = provider.query.bind(provider);
+  provider.query = (sql, params) => { statements.push(sql); return query(sql, params); };
+  return { provider, statements };
+}
+
+const nullCases = [
+  ['falsy member (soft delete)', p => !p.deletedAt, [1, 3, 4]],
+  ['truthy member on a text column', p => p.name, [1, 3]],
+  ['truthy member on a date column', p => p.deletedAt, [2]],
+  ['!== keeps NULL rows', p => p.name !== 'ana', [2, 3, 4]],
+  ['negated includes is case-sensitive', p => p.name !== null && !p.name.includes('b'), [1, 3, 4]],
+  ['< keeps NULL rows (null < 10 in JavaScript)', p => p.age < 10, [2, 3]],
+  ['conjunction with a falsy member', p => p.tenant === 'a' && !p.deletedAt, [1, 4]],
+  ['disjunction with a falsy member', p => p.tenant === 'b' || !p.name, [2, 3, 4]]
+];
+
+for (const [name, predicate, expected] of nullCases) {
+  test(`the SQL WHERE never drops rows the predicate keeps: ${name}`, async () => {
+    const { provider } = await nullableProvider();
+    const rows = await provider.executeQuery('people', queryObject([predicate], [p => p.id]));
+    assert.deepEqual(rows.map(r => r.id), expected);
+    await provider.disconnect();
+  });
+}
+
+test('predicates that are safe in SQL are still pushed down to SQLite', async () => {
+  const { provider, statements } = await nullableProvider();
+  const rows = await provider.executeQuery('people', queryObject([p => p.tenant === 'a'], [p => p.id]));
+  assert.deepEqual(rows.map(r => r.id), [1, 2, 4]);
+  assert.match(statements.find(sql => sql.startsWith('SELECT * FROM "people"')), /WHERE "tenant" = \?/);
+
+  if (legacyCore) {
+    // The safe conjunct still filters in SQL; the unsafe one runs in memory.
+    statements.length = 0;
+    await provider.executeQuery('people', queryObject([p => p.tenant === 'a' && !p.deletedAt]));
+    const select = statements.find(sql => sql.startsWith('SELECT * FROM "people"'));
+    assert.match(select, /WHERE "tenant" = \?/);
+    assert.doesNotMatch(select, /deletedAt/);
+  }
+  await provider.disconnect();
+});
+
 // ─── Composite primary keys ───────────────────────────────────────────────────
 
 test('createTable declares every primaryKey column in the primary key', async () => {

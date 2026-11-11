@@ -85,9 +85,13 @@ returns values exactly as SQLite stores them.
 ## Query translation
 
 `where`/`orderBy` predicates that `@romatech/orm` can parse become SQL `WHERE`/`ORDER BY`; everything
-else (and `skip`/`take`/`select`) is applied in memory over the converted rows. Use `@romatech/orm`
-2.1.0 or later: 2.0.x translates `x.name !== 'a'` and `!x.flag` to SQL that drops rows where the
-column is `NULL`.
+else (and `skip`/`take`/`select`) is applied in memory over the converted rows, and every predicate is
+re-applied in memory, so results follow JavaScript semantics. The SQL `WHERE` never drops a row the
+predicate keeps: with `@romatech/orm` 2.0.x, which parses bare members (`!x.deletedAt`), `!==`,
+`!s.includes(...)` and `<`/`<=` into SQL that drops `NULL` rows (or matches case-insensitively), those
+conditions run in memory only while the rest of the query still filters in SQLite.
+Relational comparisons follow SQLite's type rules: on a `TEXT` column `x.score > 5` compares text
+(`'10' > '5'` is false), while JavaScript would compare numbers. Keep each column to one type.
 
 ## Primary keys
 
